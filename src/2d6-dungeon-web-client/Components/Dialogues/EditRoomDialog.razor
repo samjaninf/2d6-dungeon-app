@@ -18,6 +18,9 @@
             <FluentButton OnClick="@(() => MoveExit('L'))" >move left</FluentButton>
             <FluentButton OnClick="@(() => MoveExit('R'))" >move right</FluentButton>
         </div>
+        <div>
+            Position on wall: from <span>@initialPosition</span> to <span>@finalPosition</span> 
+        </div>
     </div>
 
 
@@ -29,13 +32,17 @@
     public required MappedRoom Content { get; set; } = default!;
 
     [CascadingParameter]
-    public FluentDialog? Dialog { get; set; } = default!;
+    public FluentDialog Dialog { get; set; } = default!;
 
     private Direction? selectedExitKey { get; set; } = null;
-    private Exit selectedExit { get; set; } = default!;
+    private Direction selectedDirection { get; set; } = default!;
+    @* private Exit selectedExit { get; set; } = default!; *@
 
     private bool verticalAxeHidden = true;
     private bool horizontalAxeHidden = true;
+
+    private int initialPosition = 0;
+    private int finalPosition = 0;
 
     protected override void OnInitialized()
     {
@@ -44,16 +51,20 @@
 
     private async Task SaveAsync()
     {
-            await Dialog.CloseAsync(Content);
+        @* Content.Exits[(Direction)selectedExitKey!] = selectedExit; *@
+        await Dialog.CloseAsync(Content);
     }
 
     private void SelectedExit_onchange(ChangeEventArgs value){
 
-        selectedExitKey = (Direction)Enum.Parse(typeof(Direction), value.Value!.ToString()!);
+        @* selectedExitKey = (Direction)Enum.Parse(typeof(Direction), value.Value!.ToString()!); *@
+        @* var myExit = Content.Exits[(Direction)selectedExitKey!]; *@
 
-        var myExit = Content.Exits[(Direction)selectedExitKey!];
+        //var myExit = Content.Exits[selectedExitKey]!;
+
+        selectedDirection = (Direction)Enum.Parse(typeof(Direction), value.Value!.ToString()!);
      
-        switch(myExit.Direction){
+        switch(Content.Exits![selectedDirection].Direction){
             case Direction.North:
             case Direction.South:
                     verticalAxeHidden = true;
@@ -65,30 +76,31 @@
                     horizontalAxeHidden = true;
                     break;
         }
+
+        initialPosition = finalPosition = Content.Exits![selectedDirection].PositionOnWall;
     }
 
     private void MoveExit(char moveTo)
     {
-        @* if (Content.Exits == null || Content.Exits.Count == 0 || selectedExitId == 0) 
-            return; *@
-
-        //selectedExit = Content.Exits.ElementAt(selectedExitId).Value;
-        selectedExit = Content.Exits[(Direction)selectedExitKey!];
+        @* selectedExit = Content.Exits[(Direction)selectedExitKey!]; *@
         
         switch (moveTo)
         {
             case 'L':
             case 'D':
-                selectedExit.PositionOnWall = selectedExit.PositionOnWall--;
+                @* selectedExit.PositionOnWall = selectedExit.PositionOnWall--; *@
+                Content.Exits![selectedDirection].PositionOnWall--;
                 break;
             case 'R':
             case 'U':
-                selectedExit.PositionOnWall = selectedExit.PositionOnWall++;
+                @* selectedExit.PositionOnWall = selectedExit.PositionOnWall++; *@
+                Content.Exits![selectedDirection].PositionOnWall++;
                 break;
             default:
                 return; // Invalid direction
         }
 
+        finalPosition = Content.Exits![selectedDirection].PositionOnWall;
         Dialog.TogglePrimaryActionButton(true);
     }
 

@@ -332,7 +332,7 @@
                     SecondaryAction = "Cancel", 
                     Width = "800px",
                     TrapFocus = true,
-                    Modal = true
+                    Modal = false
                 };
 
             IDialogReference dialog = await DialogService.ShowDialogAsync<EditRoomDialog>(nextRoom, parameters);
