@@ -51,28 +51,28 @@
                 <div id="maps-menu" style="position: sticky; top: 20px; align-self: flex-start;">
                     <FluentStack Orientation="Orientation.Vertical" VerticalGap="10" >
 
-                        <FluentButton @onclick=RefreshCanvas Appearance="Appearance.Accent" disabled="@(nextRoom == null)">Refresh Canvas</FluentButton>
+                        <FluentButton @onclick=RefreshCanvas Appearance="Appearance.Accent" >Refresh Canvas</FluentButton>
 
                         
                         <div style="width: 100px;">
                             <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-                                <FluentButton @onclick="@( () => MoveRoom("LEFT"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowLeft())" disabled="@(nextRoom == null)" />
+                                <FluentButton @onclick="@( () => MoveRoom("LEFT"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowLeft())" disabled="@(draftRoom == null)" />
                                 <FluentStack Orientation="Orientation.Vertical">
-                                    <FluentButton @onclick="@( () => MoveRoom("UP"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowUp())" disabled="@(nextRoom == null)" />
-                                    <FluentButton @onclick="@( () => MoveRoom("DOWN"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowDown())" disabled="@(nextRoom == null)" />
+                                    <FluentButton @onclick="@( () => MoveRoom("UP"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowUp())" disabled="@(draftRoom == null)" />
+                                    <FluentButton @onclick="@( () => MoveRoom("DOWN"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowDown())" disabled="@(draftRoom == null)" />
                                 </FluentStack>
-                                <FluentButton @onclick="@( () => MoveRoom("RIGHT"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowRight())" disabled="@(nextRoom == null)" />
+                                <FluentButton @onclick="@( () => MoveRoom("RIGHT"))" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowRight())" disabled="@(draftRoom == null)" />
                             </FluentStack> 
                         </div>
                         <FluentLabel Color="@Color.Disabled">Once you have a new room, position it using the arrows above, then pin it to the map with the button below.</FluentLabel>
                         <FluentButton   @onclick=AddRoomToDungeon 
                                         Appearance="Appearance.Accent" 
                                         IconStart="@(new Icons.Regular.Size16.LocationAdd())" 
-                                        disabled="@(nextRoom == null)" /> 
+                                        disabled="@(draftRoom == null)" /> 
                         <FluentButton   @onclick=EditRoom 
                                         Appearance="Appearance.Accent" 
                                         IconStart="@(new Icons.Regular.Size16.TargetEdit())" 
-                                        disabled="@(nextRoom == null)" >Edit Room</FluentButton> 
+                                        disabled="@(draftRoom == null)" >Edit Room</FluentButton> 
                     </FluentStack>
                 </div>
             </FluentStack>
@@ -113,7 +113,7 @@
     public int adventureId { get; set; }
     private Adventure? currentAdventure;
     MappedRoom? currentRoom = new MappedRoom();
-    MappedRoom? nextRoom = null;
+    MappedRoom? draftRoom = null;
     DiceResult diceResult = new DiceResult();
 
     bool isRollDiceDisable = false;
@@ -244,31 +244,31 @@
                 Modal = true
             };
 
-        nextRoom = currentAdventure!.Dungeon.GetNewRoom();
+        draftRoom = currentAdventure!.Dungeon.GetNewRoom();
 
 
-        IDialogReference dialog = await DialogService.ShowDialogAsync<NewRoomDialog>(nextRoom, parameters);
+        IDialogReference dialog = await DialogService.ShowDialogAsync<NewRoomDialog>(draftRoom, parameters);
         DialogResult? result = await dialog.Result;
 
         if (!result.Cancelled)
         {
-            nextRoom = result.Data as MappedRoom;
+            draftRoom = result.Data as MappedRoom;
 //ID should be there!!!
             //Just temporary
-            nextRoom!.CoordX = 20;
-            nextRoom.CoordY = 10;
+            draftRoom!.CoordX = 20;
+            draftRoom.CoordY = 10;
 
             @* Char entranceWall = directionFrom.ToString()[0]; *@
-            GameTurn.SetDungeonEntranceDoor(nextRoom!, directionFrom, currentRoom.Id);
-            GameTurn.AssignExits(nextRoom!, directionFrom);
+            GameTurn.SetDungeonEntranceDoor(draftRoom!, directionFrom, currentRoom.Id);
+            GameTurn.AssignExits(draftRoom!, directionFrom);
             
-            var roomIdTest = nextRoom!.Id;
+            var roomIdTest = draftRoom!.Id;
 
-            await MapTools.DrawRoom(JSRuntime, nextRoom);
+            await MapTools.DrawRoom(JSRuntime, draftRoom);
             return roomIdTest;
         }
         else{
-            nextRoom = null;
+            draftRoom = null;
         }
         return null;
     }
@@ -285,40 +285,40 @@
 
     private async Task MoveRoom(string direction)
     {
-        if (nextRoom == null) return;
+        if (draftRoom == null) return;
         
         switch (direction)
         {
             case "UP":
-                nextRoom.CoordY -= 1;
+                draftRoom.CoordY -= 1;
                 break;
             case "DOWN":
-                nextRoom.CoordY += 1;
+                draftRoom.CoordY += 1;
                 break;
             case "LEFT":
-                nextRoom.CoordX -= 1;
+                draftRoom.CoordX -= 1;
                 break;
             case "RIGHT":
-                nextRoom.CoordX += 1;
+                draftRoom.CoordX += 1;
                 break;
         }
 
         await RefreshCanvas();
-        await MapTools.DrawRoom(JSRuntime, nextRoom);
+        await MapTools.DrawRoom(JSRuntime, draftRoom);
     }
 
 
     private async Task AddRoomToDungeon()
     {
-        if (nextRoom == null) return;
+        if (draftRoom == null) return;
         
-        currentAdventure!.Dungeon.AddRoom(nextRoom);
-        currentAdventure!.Dungeon.ChangeRoom(currentRoom!, nextRoom);
-        currentRoom = nextRoom;
+        currentAdventure!.Dungeon.AddRoom(draftRoom);
+        currentAdventure!.Dungeon.ChangeRoom(currentRoom!, draftRoom);
+        currentRoom = draftRoom;
 
         await SaveAventure();
 
-        nextRoom = null;
+        draftRoom = null;
         await RefreshCanvas();
     }
 
@@ -327,15 +327,15 @@
         var editedRoom = await OpenEditRoomDialog();
         if (editedRoom != null)
         {
-            nextRoom = editedRoom;
+            draftRoom = editedRoom;
             await RefreshCanvas();
-            await MapTools.DrawRoom(JSRuntime, nextRoom!);
+            await MapTools.DrawRoom(JSRuntime, draftRoom!);
         }
     }
 
     private async Task<MappedRoom?> OpenEditRoomDialog()
     {
-        if (nextRoom != null)
+        if (draftRoom != null)
         {     
             DialogParameters parameters = new()
                 {
@@ -348,13 +348,13 @@
                     Modal = false
                 };
 
-            IDialogReference dialog = await DialogService.ShowDialogAsync<EditRoomDialog>(nextRoom, parameters);
+            IDialogReference dialog = await DialogService.ShowDialogAsync<EditRoomDialog>(draftRoom, parameters);
             DialogResult? result = await dialog.Result;
 
             if (!result.Cancelled)
             {
-                nextRoom = result.Data as MappedRoom;
-                return nextRoom!;
+                draftRoom = result.Data as MappedRoom;
+                return draftRoom!;
             }
         }
         return null;
