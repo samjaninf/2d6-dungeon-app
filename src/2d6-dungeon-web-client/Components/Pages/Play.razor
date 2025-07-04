@@ -65,8 +65,14 @@
                             </FluentStack> 
                         </div>
                         <FluentLabel Color="@Color.Disabled">Once you have a new room, position it using the arrows above, then pin it to the map with the button below.</FluentLabel>
-                        <FluentButton @onclick=AddRoomToDungeon Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.LocationAdd())" /> 
-                        <FluentButton @onclick=EditRoom Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.TargetEdit())" >Edit Room</FluentButton> 
+                        <FluentButton   @onclick=AddRoomToDungeon 
+                                        Appearance="Appearance.Accent" 
+                                        IconStart="@(new Icons.Regular.Size16.LocationAdd())" 
+                                        disabled="@(nextRoom == null)" /> 
+                        <FluentButton   @onclick=EditRoom 
+                                        Appearance="Appearance.Accent" 
+                                        IconStart="@(new Icons.Regular.Size16.TargetEdit())" 
+                                        disabled="@(nextRoom == null)" >Edit Room</FluentButton> 
                     </FluentStack>
                 </div>
             </FluentStack>
