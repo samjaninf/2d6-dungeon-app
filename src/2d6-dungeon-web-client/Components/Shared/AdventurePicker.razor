@@ -14,11 +14,15 @@
                     ResizableColumns=true 
                     TGridItem="AdventurePreview" 
                     OnRowClick="@(async (args) => { if (args.Item?.id != null) SelectAdventure(args.Item.id); })"
-                    style="height: 600px;">
+                    style="height: 600px;"
+                    RowSize="DataGridRowSize.Medium">
         <ChildContent>
-            <PropertyColumn Property="@(a => a.adventurer_name)" Title="Adventurer Name" Sortable="true" Width="200"/>
+            <PropertyColumn Property="@(a => a.adventurer_name)" Title="Adventurer" Sortable="true" Width="200"/>
             <PropertyColumn Property="@(a => a.level)" Title="Level" Sortable="true"/>
             <PropertyColumn Property="@(a => a.last_saved_datetime)" Title="Saved Date" Sortable="true"/>
+            <TemplateColumn Width="60px">  
+                <FluentButton OnClick="@(async () => await AdventureDelete(context!.id))" IconEnd="@(new Icons.Regular.Size16.Delete())" />
+            </TemplateColumn>
         </ChildContent>
         <EmptyContent>
             <FluentIcon Value="@(new Icons.Filled.Size24.Crown())" Color="@Color.Accent" />&nbsp; Nothing so far, a Create a new one to get started!
@@ -60,4 +64,15 @@
     {
         Navigation.NavigateTo($"play/{adventureId}");
     }
+
+    private async Task AdventureDelete(int id)
+    {
+        bool result = await D6Service.AdventureDelete(id);
+        if (result)
+        {
+            AdventurePreviews = null;
+            await OnInitializedAsync();
+        }
+    }
+
 }

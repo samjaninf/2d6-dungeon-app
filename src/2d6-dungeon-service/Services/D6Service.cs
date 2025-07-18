@@ -82,6 +82,16 @@ public class D6Service
         
         return game;
     }
+    
+    public async Task<bool> AdventureDelete(int id)
+    {
+        var response = await httpClient.DeleteAsync($"api/adventure/id/{id.ToString()}");
+        var status = response.EnsureSuccessStatusCode();
+
+        if (status.IsSuccessStatusCode)
+            return true;
+        return false;
+    }
 
     #endregion
 
