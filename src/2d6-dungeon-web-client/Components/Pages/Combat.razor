@@ -1,6 +1,9 @@
-﻿@using c5m._2d6Dungeon;
+﻿@using System.Threading.Tasks
+@using c5m._2d6Dungeon;
 
 @rendermode InteractiveServer
+
+@inject IDialogService DialogService
 
 <h3>Combat Screen</h3>
 
@@ -12,11 +15,16 @@
 else{
     <FluentStack Orientation="Orientation.Vertical"  Width="100%" >
 
-        <h3>Turn @CombatState.TurnCounter</h3>
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween" Width="100%">
+            <h3>Turn @CombatState.TurnCounter - @currentFighter.ToString()</h3> 
+            <FluentButton   Appearance="Appearance.Accent" @onclick=StartNewFight IconStart="@(new Icons.Regular.Size16.ArrowCounterclockwise())" 
+                            Title="Start a new fight - resets the combat screen">Start a new fight</FluentButton>
+        </FluentStack>
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="2" >
             <ShiftButtons   rolledValue="@primaryDice"
                             shiftedValue="@primaryShiftedDice"  
                             ShiftLeft="@shiftLeft" 
+                            Disabled="combatEnded"
                             DiceShifted="PrimaryDiceShifted"></ShiftButtons>
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="2" HorizontalGap="0" Width="145">
                 <span>
@@ -25,33 +33,65 @@ else{
                 </span>
                 @shiftLeft shift left
                 <span>
-                    <FluentButton Appearance="Appearance.Accent" @onclick=Roll2Dice IconStart="@(new Icons.Regular.Size16.Cube())">Roll</FluentButton>
-                    <FluentButton Appearance="Appearance.Accent" @onclick=ResetDice IconStart="@(new Icons.Regular.Size16.ArrowCounterclockwise())" 
+                    <FluentButton   Appearance="Appearance.Accent" @onclick=Roll2Dice Disabled="combatEnded" IconStart="@(new Icons.Regular.Size16.Cube())">Roll</FluentButton>
+                    <FluentButton   Appearance="Appearance.Accent" @onclick=ResetDice Disabled="combatEnded" IconStart="@(new Icons.Regular.Size16.ArrowCounterclockwise())" 
                                     Title="Resets the Dice before any shift adjustment" >Reset</FluentButton>
                 </span>
             </FluentStack>
             <ShiftButtons   rolledValue="@secondaryDice" 
                             shiftedValue="@secondaryShiftedDice" 
                             ShiftLeft="@shiftLeft" 
+                            Disabled="combatEnded"
                             DiceShifted="SecondaryDiceShifted"></ShiftButtons>
-            <FluentSpacer Width="200"></FluentSpacer>
-            <FluentButton Appearance="Appearance.Accent" @onclick=NextTurn IconStart="@(new Icons.Regular.Size16.ArrowNext())">End Turn</FluentButton>
+
+            <FluentSpacer Width="50"></FluentSpacer>
+
+            <FluentCard Width="400px" Height="139px">
+                
+                <FluentLabel><FluentIcon Value="@(new Icons.Regular.Size24.TargetArrow())" Title="Damage" Color="Color.Error" /> Damage</FluentLabel>
+                
+
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Bottom">
+                    <div>
+                        <FluentButton OnClick="@(() => RollDamageDice(1))" Appearance="Appearance.Accent">Roll 1D6</FluentButton>
+                        <FluentButton OnClick="@(() => RollDamageDice(2))" Appearance="Appearance.Accent">Roll 2D6</FluentButton>
+                    </div>
+
+                    <div style="padding-left:20px;">
+                        @if (damageDiceResult != null)
+                        {
+                            <Dice face="@damageDiceResult.PrimaryDice" size="Dice.DiceSize.regular" color="Dice.DiceColor.red"></Dice>
+                            <Dice face="@damageDiceResult.SecondaryDice" size="Dice.DiceSize.regular" color="Dice.DiceColor.purple"></Dice>
+                        }
+                    </div>
+                </FluentStack>
+            </FluentCard>
+
+            <FluentSpacer Width="50"></FluentSpacer>
+
+            <FluentButton Appearance="Appearance.Accent" @onclick=NextTurn Disabled="combatEnded" IconStart="@(new Icons.Regular.Size16.ArrowNext())">End Turn</FluentButton>
         </FluentStack>
 
 
-
-
         <FluentStack Orientation="Orientation.Horizontal" Width="100%">
-            <FluentCard Width="600px"> 
-                <AdventurerCard Player="CombatState.Player" Extented=true Editable=true></AdventurerCard>
+            <FluentCard Width="600px" id="adventurer-card-combat" Style="@GetCardStyle(FighterType.Adventurer)"> 
+                @if (IsCurrentFighter(FighterType.Adventurer))
+                {
+                    <FluentBadge Appearance="Appearance.Accent" Icon="@(new Icons.Regular.Size16.Clock())" Style="margin-bottom:6px;">Current turn</FluentBadge>
+                }
+                <AdventurerCard @ref="adventurerCardRef" Player="CombatState.Player" Extented=true Editable=true OnHealthDepleted="OnAdventurerDefeated"></AdventurerCard>
             </FluentCard>
             <FluentCard Width="400px">
                 <QuickReferenceCombatCard   TurnCounter="@CombatState.TurnCounter" 
                                             ShiftAdjustment="@adjustmentShift" >
                 </QuickReferenceCombatCard>
             </FluentCard>
-            <FluentCard Width="400px">
-                <CreatureCard creature="CombatState.Creature" Editable=true></CreatureCard> 
+            <FluentCard Width="400px" id="creature-card-combat" Style="@GetCardStyle(FighterType.Creature)">
+                @if (IsCurrentFighter(FighterType.Creature))
+                {
+                    <FluentBadge Appearance="Appearance.Accent" Icon="@(new Icons.Regular.Size16.Clock())" Style="margin-bottom:6px;">Current turn</FluentBadge>
+                }
+                <CreatureCard @ref="creatureCardRef" creature="CombatState.Creature" Editable=true OnHealthDepleted="OnCreatureDefeated"></CreatureCard> 
             </FluentCard>
         </FluentStack>
         <CombatJournal actions="CombatState.CombatActions" ></CombatJournal>
@@ -66,9 +106,6 @@ else{
     [Parameter] 
     public EventCallback<CombatState> CombatStateChanged { get; set; }
 
-
-    @* public IEnumerable<Creature>? creatures { get; set; } *@
-    
     private int adjustmentShift = 0;
     private int adjustedShift = 0;
     private DiceResult? originalDice;
@@ -78,13 +115,67 @@ else{
     private int secondaryDice = 0;
     private int secondaryShiftedDice = 0;
 
+    private DiceResult? damageDiceResult = null;
 
+    private FighterType? currentFighter;
+    private FighterType? firstFighter;
+    private bool combatEnded = false;
 
-    protected override void OnInitialized()
+    private AdventurerCard? adventurerCardRef;
+    private CreatureCard? creatureCardRef;
+
+    private bool IsCurrentFighter(FighterType fighter) => currentFighter == fighter;
+
+    private string GetCardStyle(FighterType fighter)
+    {
+        return IsCurrentFighter(fighter)
+            ? "border:2px solid var(--accent-fill-rest); box-shadow:0 0 8px var(--accent-fill-rest);"
+            : "border:1px solid transparent;";
+    }
+
+    protected override async Task OnInitializedAsync()
     {
         adjustedShift = CombatState.Player.Shift;
-        if (CombatState.TurnCounter == 0){
+
+        if (CombatState.TurnCounter == 0)
+        {
             CombatTurnChanged(1);
+            shiftLeft = adjustedShift;
+        }
+    }
+
+    private async Task ShowSelectFirstFighterDialog()
+    {
+        var dialog = await DialogService.ShowDialogAsync<SelectFirstFighterDialog>(
+            FighterType.Adventurer,
+            new DialogParameters()
+            {
+                Title = "Combat Initiative",
+                PrimaryAction = null,
+                SecondaryAction = null,
+                Width = "400px",
+                Height = "200px",
+                Modal = true,
+                PreventDismissOnOverlayClick = true
+            });
+
+        var result = await dialog.Result;
+
+        if (!result.Cancelled && result.Data is FighterType selectedFighter)
+        {
+            firstFighter = selectedFighter;
+            SetCurrentFighterToFirstFighter();
+
+            if (CombatState.TurnCounter == 0)
+            {
+                CombatTurnChanged(1);
+                shiftLeft = adjustedShift;
+            }
+
+            var fighterName = firstFighter == FighterType.Adventurer ? "Adventurer" : "Creature";
+            CombatState.CombatActions.Add($"{fighterName} attacks first");
+
+            StateHasChanged();
         }
     }
     private void CombatTurnChanged(int turn){
@@ -121,7 +212,7 @@ else{
         secondaryDice = secondaryShiftedDice = dice.SecondaryDice;
 
         CombatState.CombatActions.Add($"Rolled {primaryDice} and {secondaryDice}");
-        
+
         shiftLeft = GetShiftLeftValue();
 
         StateHasChanged();
@@ -129,21 +220,98 @@ else{
 
     private void NextTurn()
     {
-        CombatState.TurnCounter++;
+        ToggleCurrentFighter();
+
+        if (currentFighter == firstFighter)
+        {
+            CombatState.TurnCounter++;
+            CombatTurnChanged(CombatState.TurnCounter);
+            shiftLeft = adjustedShift;
+            CombatStateChanged.InvokeAsync(CombatState);
+        }
+
         primaryDice = primaryShiftedDice = 0;
         secondaryDice = secondaryShiftedDice = 0;
-        
+        damageDiceResult = null;
+
         CombatState.CombatActions.Add($"Start Turn {CombatState.TurnCounter}");
-        CombatTurnChanged(CombatState.TurnCounter);
-        shiftLeft = adjustedShift;
+
+        StateHasChanged();
+    }
+
+    private async Task CreatureUpdated(Creature selectedCreature)
+    {
+        CombatState.Creature = selectedCreature;
+        await CombatStateChanged.InvokeAsync(CombatState);
+        await ShowSelectFirstFighterDialog();
+    }
+
+    private async Task OnAdventurerDefeated()
+    {
+        combatEnded = true;
+        CombatState.CombatActions.Add($"💀 {CombatState.Player.Name} has fallen in battle!");
+        
+        await DialogService.ShowErrorAsync(
+            message: $"Your adventurer has fallen in battle. Game Over!",
+            title: "Defeat"
+        );
+        
+        StateHasChanged();
+    }
+
+    private async Task OnCreatureDefeated()
+    {
+        combatEnded = true;
+      
+        CombatState.CombatActions.Add($"🎉 {CombatState.Creature?.name} has been defeated!");
+        
+        await CombatStateChanged.InvokeAsync(CombatState);
+        
+        await DialogService.ShowSuccessAsync(
+            message: $"Victory! You've defeated the {CombatState.Creature?.name}!\n\nIt's time to check for loot and XP rewards.",
+            title: "Victory!"
+        );
+        
+        StateHasChanged();
+    }
+
+    private async Task StartNewFight()
+    {
+        // Reset combat state
+        CombatState.Creature = null;
+        CombatState.TurnCounter = 0;
+        CombatState.CombatActions.Clear();
+
+        // Reset dice state
+        primaryDice = primaryShiftedDice = 0;
+        secondaryDice = secondaryShiftedDice = 0;
+        originalDice = null;
+
+        // Reset adjustments
+        adjustmentShift = 0;
+        adjustedShift = CombatState.Player.Shift;
+        shiftLeft = 0;
+        combatEnded = false;
+
+        // Reset health depletion flags
+        adventurerCardRef?.ResetHealthDepletion();
+        creatureCardRef?.ResetHealthDepletion();
+        
+        CombatState.CombatActions.Add("Combat reset - ready for a new fight");
         CombatStateChanged.InvokeAsync(CombatState);
         StateHasChanged();
     }
 
-    private void CreatureUpdated(Creature selectedCreature)
+    private void SetCurrentFighterToFirstFighter()
     {
-        CombatState.Creature = selectedCreature;
-        CombatStateChanged.InvokeAsync(CombatState);
+        currentFighter = firstFighter;
+    }
+
+    private void ToggleCurrentFighter()
+    {
+        currentFighter = currentFighter == FighterType.Adventurer
+            ? FighterType.Creature
+            : FighterType.Adventurer;
     }
 
 
@@ -197,4 +365,15 @@ else{
     }
 
 
+    private void RollDamageDice(int numberOfDice)
+    {
+        if (numberOfDice == 1)
+        {
+            damageDiceResult = DiceResult.Roll1Dice();
+        }
+        else
+        {
+            damageDiceResult = DiceResult.Roll2Dice();
+        }
+    }
 }

@@ -28,13 +28,13 @@ public class D6Service
 
     public async Task<int> GetSaveGameCount()
     {
-        //todo: implement a save game in the database. 
-        return await Task.FromResult<int>(1);
+        var games = await GetAdventurePreviews();
+        return games?.value?.Count() ?? 0;
     }
 
     public async Task<AdventurePreviewList?> GetAdventurePreviews()
     {
-        return await httpClient.GetFromJsonAsync<AdventurePreviewList?>("api/adventure?$select=id,adventurer_name,level,last_saved_datetime");
+        return await httpClient.GetFromJsonAsync<AdventurePreviewList?>("api/adventure?$select=id,name,adventurer_id,level,last_saved_datetime");
     }
 
     public async Task<Adventure> GetAdventure(int id)
@@ -52,7 +52,8 @@ public class D6Service
     private async Task<int> AdventureCreate(Adventure game)
     {
         AdventurePreview draftSavedGame = new AdventurePreview();
-        draftSavedGame.adventurer_name = game.Adventurer.Name;
+        draftSavedGame.name = game.Name;
+        draftSavedGame.adventurer_id = game.Adventurer.Id;
         draftSavedGame.last_saved_datetime = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
         var response = await httpClient.PostAsJsonAsync<AdventurePreview>($"api/adventure", draftSavedGame);
@@ -81,6 +82,16 @@ public class D6Service
             Console.WriteLine($"Problem while saving: code {status.StatusCode}");
         
         return game;
+    }
+    
+    public async Task<bool> AdventureDelete(int id)
+    {
+        var response = await httpClient.DeleteAsync($"api/adventure/id/{id.ToString()}");
+        var status = response.EnsureSuccessStatusCode();
+
+        if (status.IsSuccessStatusCode)
+            return true;
+        return false;
     }
 
     #endregion
@@ -124,10 +135,52 @@ public class D6Service
             return true;
         return false;
     }
+    
+    public async Task<bool> AdventurerDelete(int id)
+    {
+        // First, get the adventurer to validate it exists and get its name
+        var adventurer = await GetAdventurer(id);
+        if (adventurer == null)
+        {
+            logger.LogWarning($"Adventurer with ID {id} not found");
+            return false;
+        }
+
+        // Check if this adventurer is used in any adventures
+        var adventures = await GetAdventurePreviews();
+        if (adventures?.value != null)
+        {
+            // Check by adventurer id in adventures
+            var adventuresUsingThisAdventurer = adventures.value
+                .Where(a => a.adventurer_id == id)
+                .ToList();
+
+            if (adventuresUsingThisAdventurer.Any())
+            {
+                logger.LogWarning($"Cannot delete adventurer '{adventurer.Name}' (ID: {id}) - it is used in {adventuresUsingThisAdventurer.Count} adventure(s)");
+                return false;
+            }
+        }
+
+        // If no adventures reference this adventurer, proceed with deletion
+        var response = await httpClient.DeleteAsync($"api/adventurer/id/{id.ToString()}");
+        var status = response.EnsureSuccessStatusCode();
+
+        if (status.IsSuccessStatusCode)
+        {
+            logger.LogInformation($"Adventurer '{adventurer.Name}' (ID: {id}) has been successfully deleted");
+            return true;
+        }
+        
+        logger.LogError($"Failed to delete adventurer '{adventurer.Name}' (ID: {id}) - HTTP status: {status.StatusCode}");
+        return false;
+    }
+    
+    
 
     #endregion
 
-    
+
 
     #region == Adventurer Options =====
 
@@ -135,12 +188,13 @@ public class D6Service
 
 
     #endregion
-    
-    
+
+
 
     #region == Creature Options =====
 
-    public async Task<IQueryable<Creature>> GetCreatures(){
+    public async Task<IQueryable<Creature>> GetCreatures()
+    {
 
         var result = await httpClient.GetFromJsonAsync<CreatureList>("api/creature", options);
         return result!.value.AsQueryable();

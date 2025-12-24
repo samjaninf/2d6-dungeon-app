@@ -17,10 +17,10 @@ public static class MapTools
 
         await js.InvokeVoidAsync("DrawRoom", gidX, gidY, currentRoom.Width, currentRoom.Height, currentRoom.YouAreHere);
 
-        await DrawDoors(js, currentRoom);
+        await DrawDoors(js, currentRoom, currentRoom.YouAreHere);
     }
 
-    public static async Task DrawDoors(IJSRuntime js, MappedRoom currentRoom)
+    public static async Task DrawDoors(IJSRuntime js, MappedRoom currentRoom, bool youAreHere)
     {
         foreach (var door in currentRoom.Exits!)
         {
@@ -32,25 +32,25 @@ public static class MapTools
             switch (door.Key)
             {
                 case Direction.North:
-                    x = currentRoom.CoordX + door.Value.PositionOnWall;
-                    y = currentRoom.CoordY;
+                    x = currentRoom.CoordX - 1 + door.Value.PositionOnWall;
+                    y = currentRoom.CoordY - 1; // Position outside the room (above)
                     break;
                 case Direction.East:
-                    x = currentRoom.CoordX + currentRoom.Width;
-                    y = currentRoom.CoordY + door.Value.PositionOnWall;
+                    x = currentRoom.CoordX + currentRoom.Width; // Position outside the room (to the right)
+                    y = currentRoom.CoordY - 1 + door.Value.PositionOnWall;
                     break;
                 case Direction.South:
-                    x = currentRoom.CoordX + door.Value.PositionOnWall;
-                    y = currentRoom.CoordY + currentRoom.Height;
+                    x = currentRoom.CoordX -1 + door.Value.PositionOnWall;
+                    y = currentRoom.CoordY + currentRoom.Height; // Position outside the room (below)
                     isMain = currentRoom.IsLobby;
                     break;
                 case Direction.West:
-                    x = currentRoom.CoordX;
-                    y = currentRoom.CoordY + door.Value.PositionOnWall;
+                    x = currentRoom.CoordX - 1; // Position outside the room (to the left)
+                    y = currentRoom.CoordY -1 + door.Value.PositionOnWall;
                     break;
             }
 
-            await js.InvokeVoidAsync("DrawDoor", x, y, orientation, isMain);
+            await js.InvokeVoidAsync("DrawDoor", x, y, orientation, isMain, null, null, youAreHere);
         }
 
 
