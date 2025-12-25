@@ -1,6 +1,6 @@
 # 2d6 Dungeon App
 
-[![.NET](https://github.com/FBoucher/2d6-dungeon-app/actions/workflows/dotnet.yml/badge.svg)](https://github.com/FBoucher/2d6-dungeon-app/actions/workflows/dotnet.yml)
+![.NET](https://img.shields.io/badge/10.0-512BD4?logo=dotnet&logoColor=fff)   [![.NET](https://github.com/FBoucher/2d6-dungeon-app/actions/workflows/dotnet.yml/badge.svg)](https://github.com/FBoucher/2d6-dungeon-app/actions/workflows/dotnet.yml)  [![Publish Docker images](https://github.com/fboucher/2d6-dungeon-app/actions/workflows/publish-images.yml/badge.svg)](https://github.com/fboucher/2d6-dungeon-app/actions/workflows/publish-images.yml)
 
 [2D6 Dungeon](https://drgames.co.uk/2d6-dungeon-a-classic-dungeon-crawler-solo-player-game/) is a classic style dungeon crawler, print and play, roll and write game designed for solo play. You explore randomly generated dungeon rooms, fight monsters and collect treasure as you gain experience and strive to become a legendary adventurer. Every adventure and dungeon is unique. I was created by DR Games and it's a paper and dice game.
 
@@ -44,20 +44,26 @@ Want to play 2D6 Dungeon? Follow these simple steps:
    - Create a new folder on your computer (name it anything you like, e.g., "2d6-game")
    - Open a terminal/command prompt and navigate to that folder
 
-2. **Download the configuration**
-   - Run this command to download the game configuration:
+2. **Download the configuration files**
+   - Run these commands to download the game configuration:
      ```
      curl -o docker-compose.yml https://raw.githubusercontent.com/FBoucher/2d6-dungeon-app/main/docker-compose.yml
+     curl -o .env https://raw.githubusercontent.com/FBoucher/2d6-dungeon-app/main/.env.example
      ```
 
-3. **Start the game**
+3. **Customize the settings**
+   - Open the `.env` file with a text editor
+   - Change `MYSQL_ROOT_PASSWORD=changeme` to a password you choose (something simple is fine)
+   - You can leave the other settings as they are
+
+4. **Start the game**
    - Run this command:
      ```
      docker-compose up -d --build
      ```
    - Wait a minute for everything to download and start
 
-4. **Play!**
+5. **Play!**
    - Open your web browser and go to: `http://localhost:8080`
    - Start your adventure!
 
