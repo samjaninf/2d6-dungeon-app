@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Bogus;
 using Bogus.DataSets;
@@ -262,6 +262,13 @@ public class D6Service
         return result ?? new ArmourPieceList();
     }
 
+    public async Task<ArmourPieceList> GetInitialArmourPieces()
+    {
+        var q = $"api/armour_piece?$filter=is_initial eq true";
+        var result = await httpClient.GetFromJsonAsync<ArmourPieceList>(q, options);
+        return result ?? new ArmourPieceList();
+    }
+
     #endregion
 
 
@@ -271,6 +278,13 @@ public class D6Service
     public async Task<MagicScrollList> GetMagicScrolls()
     {
         var result = await httpClient.GetFromJsonAsync<MagicScrollList>("api/magic_scroll", options);
+        return result ?? new MagicScrollList();
+    }
+
+    public async Task<MagicScrollList> GetInitialMagicScrolls()
+    {
+        var q = $"api/magic_scroll?$filter=is_initial eq true";
+        var result = await httpClient.GetFromJsonAsync<MagicScrollList>(q, options);
         return result ?? new MagicScrollList();
     }
 
@@ -286,6 +300,12 @@ public class D6Service
         var q = $"api/magic_potion?$filter=potion_type eq 'HEALING'";
         var result = await httpClient.GetFromJsonAsync<MagicPotionlList>(q);
         return result!.value.First<MagicPotion>();
+    }
+
+    public async Task<List<MagicPotion>> GetMagicPotions()
+    {
+        var result = await httpClient.GetFromJsonAsync<MagicPotionlList>("api/magic_potion");
+        return result!.value;
     }
 
     #endregion

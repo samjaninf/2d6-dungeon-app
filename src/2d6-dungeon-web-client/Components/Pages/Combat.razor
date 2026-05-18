@@ -74,14 +74,14 @@ else{
 
 
         <FluentStack Orientation="Orientation.Horizontal" Width="100%">
-            <FluentCard Width="600px" id="adventurer-card-combat" Style="@GetCardStyle(FighterType.Adventurer)"> 
+            <FluentCard Width="550px" id="adventurer-card-combat" Style="@GetCardStyle(FighterType.Adventurer)"> 
                 @if (IsCurrentFighter(FighterType.Adventurer))
                 {
                     <FluentBadge Appearance="Appearance.Accent" Icon="@(new Icons.Regular.Size16.Clock())" Style="margin-bottom:6px;">Current turn</FluentBadge>
                 }
-                <AdventurerCard @ref="adventurerCardRef" Player="CombatState.Player" Extented=true Editable=true OnHealthDepleted="OnAdventurerDefeated"></AdventurerCard>
+                <AdventurerCard @ref="adventurerCardRef" Player="CombatState.Player" Extented=true Editable=true OnHealthDepleted="OnAdventurerDefeated" PlayerChanged="OnPlayerChanged"></AdventurerCard>
             </FluentCard>
-            <FluentCard Width="400px">
+            <FluentCard Width="350px">
                 <QuickReferenceCombatCard   TurnCounter="@CombatState.TurnCounter" 
                                             ShiftAdjustment="@adjustmentShift" >
                 </QuickReferenceCombatCard>
@@ -255,6 +255,13 @@ else{
         CombatState.Creature = selectedCreature;
         await CombatStateChanged.InvokeAsync(CombatState);
         await ShowSelectFirstFighterDialog();
+    }
+
+    private async Task OnPlayerChanged(Game.Adventurer updatedPlayer)
+    {
+        CombatState.Player = updatedPlayer;
+        await CombatStateChanged.InvokeAsync(CombatState);
+        StateHasChanged();
     }
 
     private async Task OnAdventurerDefeated()
