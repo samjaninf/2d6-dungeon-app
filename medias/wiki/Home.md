@@ -23,7 +23,7 @@ When you first launch the application, you'll be greeted by the clean, retro-sty
 
 ### Core Elements of the Home Page:
 1. **Dynamic Welcome Message:** The app automatically scans your database to see if you have existing adventures.
-   - **First Run:** If no saved games are detected, the app will display a helpful tip suggesting you begin by creating a new adventure.
+   - **First Run:** If no saved games are detected, the app displays a helpful tip suggesting you begin by creating a new adventure.
    - **Returning Adventurers:** If you have active campaigns, the system detects them and displays options to either continue a saved game or start a fresh quest.
 2. **Navigation Sidebar:** Toggle the sidebar (using the hamburger menu button in the top left) to access the core screens:
    - **Home:** Return to this launch page.
