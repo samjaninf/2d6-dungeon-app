@@ -25,6 +25,8 @@ public class GameTurn
                 break;
             case(ActionType.RollForExits): RollForExits(dResult);
                 break;
+            case(ActionType.RollForLocks): RollForLocks(dResult);
+                break;
             case(ActionType.RollRoomDefinition): 
                 int area = CurrentRoom!.Width * CurrentRoom.Height;
                 await RollRoomDefinition(area, dResult, dungeon);
@@ -116,9 +118,6 @@ public class GameTurn
                 break;
         }
 
-
-
-
         if(CurrentRoom.IsCorridor)
         {
             NextAction = ActionType.EndOfTurn;
@@ -129,8 +128,26 @@ public class GameTurn
             NextAction = ActionType.Encounter;
             Message = $"There {CurrentRoom.ExitsCount} other exits in this room.";
         }
+    }
 
+    private void RollForLocks(DiceResult dResult)
+    {
+        if(CurrentRoom == null){
+            throw new Exception("Lost the info about the current room. PLease start the turn again.");
+        }
+
+        CurrentRoom.LockRoll = dResult.PrimaryDice;
+        NextAction = ActionType.Encounter;
         
+        string lockMessage = dResult.PrimaryDice switch
+        {
+            6 => "All doors in this room are locked!",
+            5 => "Reinforced doors are locked.",
+            4 => "Metal doors are locked.",
+            _ => "No doors are locked."
+        };
+        
+        Message = lockMessage;
     }
 
     private void DraftCurrentRoom(DiceResult dResult){
@@ -153,6 +170,7 @@ public class GameTurn
 
         CurrentRoom!.Description = room.description;
         CurrentRoom!.Encounter = room.encounter;
+        CurrentRoom!.ExitsType = room.exits;
         //NextAction = ActionType.RollForExits;
         Message = $"Go to the sumary to see all the details of the room.";
     }
@@ -170,7 +188,7 @@ public class GameTurn
         currentRoom.Exits.Add(entranceWall, mainDoor);
     }
 
-    public static void AssignExits(MappedRoom currentRoom, Direction entrance)
+    public static void AssignExits(MappedRoom currentRoom, Direction entrance, int? lockRoll = null)
     {
         int seed = DateTime.UtcNow.Millisecond;
         Random rnd = new Random(seed);
@@ -181,6 +199,8 @@ public class GameTurn
 
         if(currentRoom.Exits == null)
                 currentRoom.Exits = new Dictionary<Direction,Exit>();
+
+        string doorType = ResolveDoorType(currentRoom.ExitsType, rnd);
 
         foreach(var wall in wallsWithExits.ToList())
         {
@@ -197,9 +217,56 @@ public class GameTurn
             }
             aDoor.Direction = wall;
             aDoor.PositionOnWall = rnd.Next(1, maxPos);
-            aDoor.Lockable = false;
+            aDoor.Lockable = true;
+            aDoor.IsLocked = IsDoorLocked(doorType, lockRoll);
+            aDoor.ExitType = doorType;
             currentRoom.Exits.Add(wall, aDoor); 
         }
+    }
+
+    private static bool IsDoorLocked(string doorType, int? lockRoll)
+    {
+        if (lockRoll == null) return false;
+
+        return lockRoll switch
+        {
+            6 => true,
+            5 => doorType == "reinforced",
+            4 => doorType == "metal",
+            _ => false
+        };
+    }
+
+    private static readonly string[] DoorTypes = new[]
+    {
+        "archway", "wooden", "metal", "reinforced", "curtain", "portcullis", "stone_slab"
+    };
+
+    private static string ResolveDoorType(string? exitsType, Random rnd)
+    {
+        if (string.IsNullOrWhiteSpace(exitsType))
+        {
+            return "archway";
+        }
+
+        string normalized = exitsType.Trim().ToLowerInvariant();
+
+        if (normalized == "random")
+        {
+            return DoorTypes[rnd.Next(DoorTypes.Length)];
+        }
+
+        return normalized switch
+        {
+            "archways" or "archway" => "archway",
+            "wooden doors" or "wooden" => "wooden",
+            "metal doors" or "metal" => "metal",
+            "reinforced doors" or "reinforced" => "reinforced",
+            "curtains" or "curtain" => "curtain",
+            "portcullis" or "portcullises" => "portcullis",
+            "stone slab" or "stone_slab" or "stoneslab" => "stone_slab",
+            _ => "archway"
+        };
     }
 
     public static Direction GetOppositeDirection(Direction direction)
@@ -209,7 +276,8 @@ public class GameTurn
             Direction.North => Direction.South,
             Direction.South => Direction.North,
             Direction.East => Direction.West,
-            Direction.West => Direction.East
+            Direction.West => Direction.East,
+            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null)
         };
     }
 
@@ -281,6 +349,7 @@ public enum ActionType
     DrawRoom,
     EndOfTurn,
     RollRoomDefinition,
+    RollForLocks,
     Encounter,
     DungeonStarted
 }

@@ -1,4 +1,4 @@
-﻿@implements IDialogContentComponent<DoorSelections>
+@implements IDialogContentComponent<DoorSelections>
 
 @rendermode InteractiveServer
 
@@ -31,6 +31,11 @@
     private bool isDoorW = false;
     private bool isDoorE = false;
 
+    private bool isLockedDoorN = false;
+    private bool isLockedDoorS = false;
+    private bool isLockedDoorW = false;
+    private bool isLockedDoorE = false;
+
     private Icon iconDoorN = new Icons.Regular.Size20.Door();
     private Icon iconDoorS = new Icons.Regular.Size20.Door();
     private Icon iconDoorW = new Icons.Regular.Size20.Door();
@@ -51,18 +56,22 @@
             switch(door.Key){
                 case(Direction.North): 
                     isDoorN = true;
+                    isLockedDoorN = door.Value.IsLocked;
                     iconDoorN = (door.Value.IsLocked) ? doorLockedIcon: doorIcon;
                     break;
                 case(Direction.East): 
                     isDoorE = true;
+                    isLockedDoorE = door.Value.IsLocked;
                     iconDoorE = (door.Value.IsLocked) ? doorLockedIcon: doorIcon;
                     break;
                 case(Direction.South): 
                     isDoorS = true;
+                    isLockedDoorS = door.Value.IsLocked;
                     iconDoorS = (door.Value.IsLocked) ? doorLockedIcon: doorIcon;
                     break;
                 case(Direction.West): 
                     isDoorW = true;
+                    isLockedDoorW = door.Value.IsLocked;
                     iconDoorW = (door.Value.IsLocked) ? doorLockedIcon: doorIcon;
                     break;
             }
